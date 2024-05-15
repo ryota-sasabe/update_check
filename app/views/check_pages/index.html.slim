@@ -1,0 +1,48 @@
+h1 HTML diffツール
+- check_time_recents = CheckPageResult.select(:checked_at).distinct.order(checked_at: :desc)
+- if check_time_recents.size <= 1
+  p
+    | diff表示はHTML取得が2回以上必要です。(#{check_time_recents.size}回)
+- else
+  - latest_time = check_time_recents[0].checked_at || Time.zone.now
+  - diff1_time = params[:diff1_time]&.to_datetime || check_time_recents[0].checked_at || Time.zone.now
+  - diff2_time = params[:diff2_time]&.to_datetime || check_time_recents[1].checked_at || Time.zone.now
+
+  h2 = "HTML取得履歴 revision"
+
+  ul
+  - check_time_recents.each.with_index(1) do |p, index|
+    - before = index == check_time_recents.size ? nil : check_time_recents[index]
+    li
+      span = p.checked_at.strftime('%Y/%m/%d %H:%M:%S')
+      | &nbsp;
+      - if before.present?
+        = link_to '[直前との比較]', check_pages_path(diff1_time: p.checked_at, diff2_time: before.checked_at)
+        | &nbsp;
+      - if p.checked_at != latest_time
+        = link_to '[最新との比較]', check_pages_path(diff1_time: latest_time, diff2_time: p.checked_at)
+
+  h2 = "HTML比較 diff1: #{diff1_time.strftime('%Y/%m/%d %H:%M')} <=> diff2: #{diff2_time.strftime('%Y/%m/%d %H:%M')}"
+
+  - CheckPage.includes(:check_page_results).all.each do |page|
+    - diff1 = page.check_page_results.detect{ |p| p.checked_at == diff1_time }
+    - diff2 = page.check_page_results.detect{ |p| p.checked_at == diff2_time }
+
+    h3 = page.url
+    - if diff1.blank? || diff2.blank?
+      p 比較対象のリビジョンがありません
+    - elsif diff1.body.to_s == diff2.body.to_s
+      p 前のリビジョンと同じです
+    - else
+      - diff = Diffy::SplitDiff.new(diff1.body.to_s, diff2.body.to_s, format: :html, allow_empty_diff: false, diff: ['--unified=3', '--ignore-all-space'])
+      table.table.table-striped
+        tr
+          td style="width:50%" = diff1.created_at
+          td style="width:50%" = diff2.created_at
+        tr
+          td = diff.left.html_safe
+          td = diff.right.html_safe
+    / - else
+    /   p diffが無い
+  style
+    = Diffy::CSS

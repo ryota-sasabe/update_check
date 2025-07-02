@@ -31,14 +31,14 @@ h1 HTML diffツール
     h3 = page.url
     - if diff1.blank? || diff2.blank?
       p 比較対象のリビジョンがありません
-    - elsif diff1.body.to_s == diff2.body.to_s
+    - elsif diff1.clean_body.to_s == diff2.clean_body.to_s
       p 前のリビジョンと同じです
     - else
-      - diff = Diffy::SplitDiff.new(diff1.body.to_s, diff2.body.to_s, format: :html, allow_empty_diff: false, diff: ['--unified=3', '--ignore-all-space'])
+      - diff = Diffy::SplitDiff.new(diff2.clean_body.to_s, diff1.clean_body.to_s, format: :html, allow_empty_diff: false, diff: ['--unified=3', '--ignore-all-space'])
       table.table.table-striped
         tr
-          td style="width:50%" = diff1.created_at
           td style="width:50%" = diff2.created_at
+          td style="width:50%" = diff1.created_at
         tr
           td = diff.left.html_safe
           td = diff.right.html_safe

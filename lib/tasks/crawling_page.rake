@@ -4,10 +4,17 @@ require 'faraday_middleware'
 
 namespace :crawling_page do
   desc 'crawling page'
-  task run: :environment do |task|
-    start_datetime = Time.zone.now
 
-    CheckPage.where(enabled: 1).each do |page|
+  task :run, ['site'] => :environment do |task, args|
+    if args[:site].nil?
+      puts "引数で site_id を指定してください。例: crawling_page:run[1]"
+      exit
+    end
+
+    start_datetime = Time.zone.now
+    site_id = args[:site].to_i
+
+    CheckPage.where(site_id: site_id, enabled: 1).each do |page|
       begin
         result = http_get(page.url)
       rescue => e
